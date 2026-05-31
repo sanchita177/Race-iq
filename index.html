@@ -1,1 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>RaceIQ — Decode The Race</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Barlow+Condensed:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ═══════════════════════════════════════════
+   ROOT VARIABLES
+═══════════════════════════════════════════ */
+:root {
+  --black:    #0A0A0A;
+  --carbon:   #111111;
+  --card:     #0E0E0E;
+  --border:   #1E1E1E;
+  --border2:  #2A2A2A;
+  --red:      #FF1E1E;
+  --red2:     #CC0000;
+  --red-glow: rgba(255,30,30,0.18);
+  --red-dim:  rgba(255,30,30,0.08);
+  --blue:     #00C2FF;
+  --blue-glow:rgba(0,194,255,0.15);
+  --blue-dim: rgba(0,194,255,0.07);
+  --silver:   #D9D9D9;
+  --silver2:  #999;
+  --muted:    #444;
+  --muted2:   #666;
+  --green:    #39FF88;
+  --green-dim:rgba(57,255,136,0.09);
+  --gold:     #FFB800;
+}
 
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+  background: var(--black);
+  color: var(--silver);
+  font-family: 'Barlow', sans-serif;
+  font-weight: 400;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Racing grid background */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,30,30,0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,30,30,0.018) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+}
+
+/* Noise overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════
+   NAV
+═══════════════════════════════════════════ */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+  height: 58px;
+  background: rgba(10,10,10,0.88);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px;
+}
+nav::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 0%, var(--red) 40%, var(--blue) 60%, transparent 100%);
+  opacity: 0.5;
+}
+
+.nav-brand {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+}
+.nav-logo-img {
+  width: 34px; height: 34px; object-fit: contain; border-radius: 4px;
+}
+.nav-logo-text {
+  font-family: 'Orbitron', monospace;
+  font-weight: 900; font-size: 1.05rem; letter-spacing: 4px;
+  color: var(--silver);
+}
+.nav-logo-text em { color: var(--red); font-style: normal; }
+.nav-tagline {
+  font-size: 0.48rem; letter-spacing: 3px; color: var(--muted2);
+  text-transform: uppercase; display: block; margin-top: -2px;
+}
+
+.nav-tabs {
+  display: flex; gap: 2px; position: absolute; left: 50%; transform: translateX(-50%);
+}
+.nav-tab {
+  background: transparent; border: none; cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.7rem; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted2);
+  padding: 6px 12px; border-radius: 5px;
+  transition: color 0.25s, background 0.25s;
+  position: relative;
+}
+.nav-tab::after {
+  content: ''; position: absolute; bottom: -1px; left: 20%; right: 20%; height: 1px;
+  background: var(--red);
+  transform: scaleX(0); transition: transform 0.25s;
+  box-shadow: 0 0 6px var(--red);
+}
+.nav-tab:hover { color: var(--silver); }
+.nav-tab.active { color: var(--silver); background: rgba(255,30,30,0.06); }
+.nav-tab.active::after { transform: scaleX(1); }
+
+.nav-right { display: flex; align-items: center; gap: 10px; }
+.live-chip {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(255,30,30,0.08);
+  border: 1px solid rgba(255,30,30,0.25);
+  border-radius: 20px; padding: 3px 10px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 2px;
+  color: var(--red); text-transform: uppercase;
+}
+.live-chip-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--red);
+  animation: blink 1s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.15;} }
+.nav-icon {
+  background: transparent; border: none; color: var(--muted2);
+  font-size: 0.95rem; cursor: pointer; padding: 4px;
+  transition: color 0.2s;
+}
+.nav-icon:hover { color: var(--silver); }
+
+/* ═══════════════════════════════════════════
+   MAIN WRAPPER
+═══════════════════════════════════════════ */
+main { padding-top: 58px; position: relative; z-index: 1; }
+.container { max-width: 480px; margin: 0 auto; padding: 0 18px; }
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+  min-height: 92vh;
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column; justify-content: center;
+}
+
+/* Ambient glows */
+.hero-glow-r {
+  position: absolute; width: 500px; height: 500px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(255,30,30,0.07) 0%, transparent 70%);
+  bottom: -100px; left: -100px;
+}
+.hero-glow-b {
+  position: absolute; width: 400px; height: 400px;
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(0,194,255,0.05) 0%, transparent 70%);
+  top: 0; right: -100px;
+}
+
+/* Moving telemetry lines */
+.tele { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.tl {
+  position: absolute; height: 1px; opacity: 0;
+  animation: teleSlide 5s infinite linear;
+}
+.tl:nth-child(1) { top:22%; width:45%; background:linear-gradient(90deg,transparent,var(--red),transparent); animation-delay:0s; }
+.tl:nth-child(2) { top:45%; width:60%; background:linear-gradient(90deg,transparent,var(--blue),transparent); animation-delay:1.5s; animation-duration:6s; }
+.tl:nth-child(3) { top:68%; width:35%; background:linear-gradient(90deg,transparent,var(--red),transparent); animation-delay:3s; }
+.tl:nth-child(4) { top:80%; width:55%; background:linear-gradient(90deg,transparent,var(--blue),transparent); animation-delay:0.7s; animation-duration:7s; }
+.tl:nth-child(5) { top:35%; width:40%; background:linear-gradient(90deg,transparent,rgba(255,30,30,0.4),transparent); animation-delay:2.3s; }
+@keyframes teleSlide {
+  0%   { left:-65%; opacity:0; }
+  8%   { opacity:0.7; }
+  92%  { opacity:0.7; }
+  100% { left:110%; opacity:0; }
+}
+
+/* F1 car SVG silhouette */
+.car-wrap {
+  position: absolute; bottom: 60px; right: -30px;
+  width: 280px; opacity: 0.06;
+  pointer-events: none;
+}
+.car-wrap svg { width: 100%; height: auto; }
+
+.hero-inner {
+  position: relative; z-index: 2;
+  padding: 50px 18px 40px; max-width: 480px; margin: 0 auto;
+  animation: heroFadeIn 1.1s ease both;
+}
+@keyframes heroFadeIn { from{opacity:0;transform:translateY(24px)} to{opacity:1;transform:translateY(0)} }
+
+.hero-race-flag {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: rgba(255,30,30,0.07);
+  border: 1px solid rgba(255,30,30,0.2);
+  border-radius: 3px; padding: 5px 12px; margin-bottom: 24px;
+  width: fit-content;
+}
+.hero-flag-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); animation: blink 1s infinite; }
+.hero-flag-text { font-family:'Barlow Condensed',sans-serif; font-size:0.62rem; font-weight:700; letter-spacing:2.5px; color:var(--red); text-transform:uppercase; }
+.hero-flag-lap { font-family:'Orbitron',monospace; font-size:0.58rem; color:var(--blue); letter-spacing:1px; border-left:1px solid var(--border2); padding-left:8px; }
+
+.hero-headline {
+  font-family: 'Orbitron', monospace;
+  font-weight: 900;
+  font-size: clamp(1.7rem, 7vw, 2.4rem);
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  margin-bottom: 14px;
+}
+.hero-headline .accent {
+  display: block;
+  background: linear-gradient(135deg, var(--red) 0%, #ff6b6b 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 0.92rem; line-height: 1.65;
+  color: var(--muted2); font-weight: 300;
+  margin-bottom: 30px; max-width: 320px;
+}
+
+.hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 32px; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--red) 0%, var(--red2) 100%);
+  border: none; border-radius: 6px; cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
+  color: #fff; padding: 13px 24px;
+  box-shadow: 0 4px 24px rgba(255,30,30,0.28);
+  transition: all 0.3s;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,30,30,0.42); }
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border2); border-radius: 6px; cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.78rem; font-weight: 600; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--silver2); padding: 13px 22px;
+  transition: all 0.3s;
+}
+.btn-ghost:hover { border-color: var(--blue); color: var(--blue); }
+
+/* Hero stat strip */
+.hero-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.h-stat { background: var(--carbon); padding: 12px 8px; text-align: center; border-right: 1px solid var(--border); }
+.h-stat:last-child { border-right: none; }
+.h-stat-lbl { font-family:'Barlow Condensed',sans-serif; font-size:0.52rem; letter-spacing:2px; color:var(--muted); text-transform:uppercase; margin-bottom:4px; }
+.h-stat-val { font-family:'Orbitron',monospace; font-size:0.82rem; font-weight:700; }
+.h-stat-val.r { color: var(--red); }
+.h-stat-val.b { color: var(--blue); }
+.h-stat-val.g { color: var(--green); }
+.h-stat-val.w { color: var(--silver); }
+
+/* ═══════════════════════════════════════════
+   SECTION STRUCTURE
+═══════════════════════════════════════════ */
+section { padding: 32px 0; }
+.sec-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 18px;
+}
+.sec-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.58rem; font-weight: 700;
+  letter-spacing: 3px; color: var(--muted2);
+  text-transform: uppercase; white-space: nowrap;
+}
+.sec-line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border2), transparent); }
+.sec-pill {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.5rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; border-radius: 3px; padding: 2px 7px;
+}
+.sec-pill.blue { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(0,194,255,0.18); }
+.sec-pill.red  { background: var(--red-dim);  color: var(--red);  border: 1px solid rgba(255,30,30,0.18); }
+
+/* Divider between sections */
+.sec-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border2), transparent);
+  margin: 0 18px;
+}
+
+/* ═══════════════════════════════════════════
+   COMMENTARY
+═══════════════════════════════════════════ */
+.comm-card {
+  background: var(--carbon);
+  border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  position: relative;
+}
+.comm-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red) 30%, var(--blue) 70%, transparent);
+}
+
+.comm-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.comm-id { display: flex; align-items: center; gap: 10px; }
+.comm-orb {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #2a0000, var(--red));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem;
+  transition: box-shadow 0.3s;
+}
+.comm-orb.live { animation: orbGlow 0.65s infinite alternate; }
+@keyframes orbGlow {
+  from { box-shadow: 0 0 8px rgba(255,30,30,0.4); }
+  to   { box-shadow: 0 0 22px rgba(255,30,30,0.9), 0 0 40px rgba(255,30,30,0.25); }
+}
+.comm-name { font-family:'Barlow Condensed',sans-serif; font-size:0.85rem; font-weight:700; letter-spacing:0.5px; }
+.comm-sub  { font-size:0.58rem; color:var(--muted2); margin-top:1px; }
+.ibm-badge {
+  font-family: 'Orbitron', monospace; font-size:0.45rem; letter-spacing:1.5px;
+  background: var(--red); color: #fff; padding: 3px 8px; border-radius: 3px;
+}
+
+.cap-zone { min-height: 88px; padding: 16px; display:flex; flex-direction:column; justify-content:center; gap:5px; }
+.cap-label { font-family:'Barlow Condensed',sans-serif; font-size:0.52rem; font-weight:700; letter-spacing:2.5px; color:var(--blue); text-transform:uppercase; }
+.cap-text  { font-size:0.9rem; line-height:1.65; color:var(--silver); font-weight:400; }
+.cap-idle  { font-size:0.78rem; color:var(--muted2); font-style:italic; }
+.cap-loading { display:flex; align-items:center; gap:9px; color:var(--muted2); font-size:0.74rem; }
+.bars { display:flex; gap:2px; align-items:flex-end; height:14px; }
+.bar  { width:3px; background:var(--blue); border-radius:2px; animation:barBounce 0.8s infinite ease-in-out; }
+.bar:nth-child(1){height:4px;animation-delay:0s}
+.bar:nth-child(2){height:10px;animation-delay:0.14s}
+.bar:nth-child(3){height:7px;animation-delay:0.28s}
+.bar:nth-child(4){height:12px;animation-delay:0.09s}
+.bar:nth-child(5){height:5px;animation-delay:0.23s}
+@keyframes barBounce{0%,100%{transform:scaleY(0.35);opacity:0.5}50%{transform:scaleY(1);opacity:1}}
+
+.cw { display: inline; }
+.cw.now  { color:#fff; background:var(--red); border-radius:3px; padding:0 2px; }
+.cw.done { color: var(--blue); }
+
+.comm-controls {
+  display: flex; gap: 8px; align-items: center;
+  padding: 12px 16px; border-top: 1px solid var(--border);
+  background: rgba(255,255,255,0.015);
+}
+.btn-play {
+  background: linear-gradient(135deg, var(--red), var(--red2));
+  border: none; border-radius: 6px; cursor: pointer;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+  color: #fff; padding: 9px 18px;
+  display: flex; align-items: center; gap: 5px;
+  transition: all 0.2s;
+}
+.btn-play:hover { opacity: 0.88; transform: translateY(-1px); }
+.btn-play:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.btn-stop {
+  background: transparent; border: 1px solid var(--border2); border-radius: 6px;
+  color: var(--muted2); font-family:'Barlow Condensed',sans-serif;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 9px 14px; cursor: pointer; transition: all 0.2s;
+}
+.btn-stop:hover:not(:disabled) { border-color: var(--silver2); color: var(--silver); }
+.btn-stop:disabled { opacity: 0.25; cursor: not-allowed; }
+.vol-note { margin-left: auto; font-size: 0.56rem; color: var(--muted); letter-spacing: 1px; }
+
+.moments {
+  display: flex; gap: 5px; flex-wrap: wrap;
+  padding: 10px 16px 14px;
+}
+.moment-chip {
+  background: rgba(255,255,255,0.025); border: 1px solid var(--border);
+  border-radius: 20px; color: var(--muted2);
+  padding: 4px 11px; font-size: 0.63rem; font-weight: 500; letter-spacing: 0.5px;
+  cursor: pointer; transition: all 0.2s;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.moment-chip:hover { border-color: rgba(255,30,30,0.4); color: var(--silver); background: var(--red-dim); }
+
+/* ═══════════════════════════════════════════
+   LEADERBOARD
+═══════════════════════════════════════════ */
+.lb-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  background: var(--carbon); border: 1px solid var(--border); border-radius: 10px;
+  margin-bottom: 5px; cursor: pointer;
+  transition: border-color 0.22s, transform 0.22s;
+  position: relative; overflow: hidden;
+}
+.lb-row::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: transparent; transition: background 0.22s;
+}
+.lb-row:hover { border-color: rgba(255,30,30,0.3); transform: translateX(4px); }
+.lb-row:hover::before { background: var(--red); }
+.lb-row.r1::before { background: var(--gold); }
+.lb-row.r2::before { background: #aaa; }
+.lb-row.r3::before { background: #a0522d; }
+
+.lb-pos {
+  font-family: 'Orbitron', monospace; font-size: 0.75rem; font-weight: 700;
+  width: 18px; text-align: center; flex-shrink: 0; color: var(--muted2);
+}
+.lb-pos.gold   { color: var(--gold); }
+.lb-pos.silver { color: #bbb; }
+.lb-pos.bronze { color: #c07040; }
+
+.lb-team-bar { width: 2px; height: 34px; border-radius: 2px; flex-shrink: 0; }
+.lb-info { flex: 1; }
+.lb-name { font-family:'Barlow Condensed',sans-serif; font-size:0.88rem; font-weight:600; letter-spacing:0.5px; }
+.lb-meta { display:flex; align-items:center; gap:5px; margin-top:2px; }
+.lb-team-name { font-size:0.6rem; color:var(--muted2); }
+.tyre {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.52rem; font-weight: 700; letter-spacing: 0.5px;
+  padding: 1px 5px; border-radius: 3px;
+}
+.tyre.H { color: var(--silver2); border: 1px solid #333; background: rgba(200,200,200,0.05); }
+.tyre.M { color: var(--gold);    border: 1px solid rgba(255,184,0,0.25); background: rgba(255,184,0,0.05); }
+.tyre.S { color: var(--red);     border: 1px solid rgba(255,30,30,0.25); background: rgba(255,30,30,0.05); }
+.drs-badge {
+  font-size: 0.5rem; font-weight: 700; letter-spacing: 0.5px;
+  background: var(--green-dim); color: var(--green);
+  border: 1px solid rgba(57,255,136,0.2); border-radius: 3px; padding: 1px 5px;
+}
+.lb-right { text-align: right; flex-shrink: 0; }
+.lb-time { font-family:'Orbitron',monospace; font-size:0.68rem; color:var(--blue); }
+.lb-gap  { font-size:0.58rem; color:var(--muted2); margin-top:1px; }
+.lb-delta { font-family:'Barlow Condensed',sans-serif; font-size:0.6rem; font-weight:700; }
+.lb-delta.up   { color: var(--green); }
+.lb-delta.down { color: var(--red); }
+
+/* Pulse for top driver */
+.lb-row.r1 { animation: rowPulse 3s infinite; }
+@keyframes rowPulse {
+  0%,100% { box-shadow: none; }
+  50%      { box-shadow: 0 0 12px rgba(255,184,0,0.08); }
+}
+
+/* ═══════════════════════════════════════════
+   AI STRATEGY FEED
+═══════════════════════════════════════════ */
+.feed-card {
+  background: var(--carbon); border: 1px solid var(--border);
+  border-radius: 10px; padding: 15px; margin-bottom: 8px;
+  position: relative; overflow: hidden;
+  transition: border-color 0.22s;
+}
+.feed-card:hover { border-color: rgba(255,30,30,0.22); }
+.feed-card::after {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--red) 0%, transparent 100%);
+  opacity: 0.5;
+}
+.feed-lap {
+  font-family: 'Orbitron', monospace; font-size: 0.52rem;
+  letter-spacing: 2px; color: var(--muted2); margin-bottom: 7px;
+}
+.feed-text {
+  font-size: 0.84rem; line-height: 1.58; color: var(--silver);
+  font-weight: 400;
+}
+.feed-text strong { color: var(--blue); font-weight: 600; }
+.feed-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  margin-top: 10px; padding: 2px 9px; border-radius: 3px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 0.52rem; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+}
+.feed-badge.strategy { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(0,194,255,0.18); }
+.feed-badge.alert    { background: var(--red-dim);  color: var(--red);  border: 1px solid rgba(255,30,30,0.18); }
+.feed-badge.tyre     { background: rgba(255,184,0,0.07); color: var(--gold); border: 1px solid rgba(255,184,0,0.18); }
+
+/* ═══════════════════════════════════════════
+   PREDICTIONS
+═══════════════════════════════════════════ */
+.pred-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.pred-card {
+  background: var(--carbon); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px;
+  position: relative; overflow: hidden;
+}
+.pred-card::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--red);
+}
+.pred-lbl { font-family:'Barlow Condensed',sans-serif; font-size:0.55rem; font-weight:700; letter-spacing:2px; color:var(--muted2); text-transform:uppercase; margin-bottom:8px; }
+.pred-val { font-family:'Orbitron',monospace; font-size:0.9rem; font-weight:700; color:var(--blue); margin-bottom:8px; }
+
+/* Ring chart */
+.ring-wrap { display:flex; justify-content:center; margin-bottom:8px; position:relative; }
+.ring-wrap svg { transform: rotate(-90deg); display:block; }
+.ring-bg { fill:none; stroke:var(--border2); stroke-width:3.5; }
+.ring-fg { fill:none; stroke-width:3.5; stroke-linecap:round; }
+.ring-pct {
+  position: absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Orbitron',monospace; font-size:0.75rem; font-weight:700;
+}
+
+.conf-row { display:flex; align-items:center; gap:5px; }
+.conf-lbl { font-size:0.56rem; color:var(--muted2); white-space:nowrap; }
+.conf-bar { flex:1; height:2px; background:var(--border2); border-radius:2px; overflow:hidden; }
+.conf-fill { height:100%; border-radius:2px; background:linear-gradient(90deg, var(--red), var(--blue)); }
+
+/* ═══════════════════════════════════════════
+   CHAT / ASK AI
+═══════════════════════════════════════════ */
+.chat-card {
+  background: var(--carbon); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden; margin-bottom: 12px;
+}
+.chat-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  background: rgba(255,30,30,0.04);
+}
+.chat-head-title { font-family:'Barlow Condensed',sans-serif; font-size:0.82rem; font-weight:700; letter-spacing:1px; }
+
+/* Beginner toggle */
+.mode-wrap { margin-left:auto; display:flex; align-items:center; gap:7px; }
+.mode-txt { font-family:'Barlow Condensed',sans-serif; font-size:0.6rem; font-weight:700; letter-spacing:1px; color:var(--muted2); text-transform:uppercase; }
+.mode-txt.on { color:var(--green); }
+.tog { position:relative; width:34px; height:18px; }
+.tog input { opacity:0; width:0; height:0; }
+.tog-slider {
+  position:absolute; inset:0;
+  background:var(--border2); border-radius:20px; cursor:pointer; transition:0.3s;
+}
+.tog-slider::before {
+  content:''; position:absolute; height:12px; width:12px;
+  left:3px; bottom:3px; background:#fff; border-radius:50%; transition:0.3s;
+}
+.tog input:checked + .tog-slider { background:var(--green); }
+.tog input:checked + .tog-slider::before { transform:translateX(16px); }
+
+.messages {
+  height: 250px; overflow-y:auto; padding:12px;
+  display:flex; flex-direction:column; gap:8px;
+  scroll-behavior: smooth;
+}
+.messages::-webkit-scrollbar { width:2px; }
+.messages::-webkit-scrollbar-thumb { background:var(--border2); border-radius:2px; }
+
+.msg { max-width:92%; padding:10px 13px; border-radius:10px; font-size:0.82rem; line-height:1.6; animation:msgIn 0.25s ease; }
+@keyframes msgIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.msg.user { background:linear-gradient(135deg,#1c0000,var(--red)); color:#fff; align-self:flex-end; border-bottom-right-radius:3px; }
+.msg.ai   { background:rgba(255,255,255,0.038); border:1px solid var(--border); align-self:flex-start; border-bottom-left-radius:3px; }
+.msg-lbl { font-family:'Barlow Condensed',sans-serif; font-size:0.54rem; font-weight:700; letter-spacing:2px; color:var(--blue); text-transform:uppercase; margin-bottom:5px; }
+.beg-tag {
+  display:inline-block; font-size:0.52rem; font-weight:700; letter-spacing:1px;
+  background:var(--green-dim); color:var(--green);
+  border:1px solid rgba(57,255,136,0.22); border-radius:4px; padding:1px 7px; margin-bottom:5px;
+}
+.typing {
+  display:flex; gap:4px; align-items:center; padding:10px 13px;
+  background:rgba(255,255,255,0.038); border:1px solid var(--border);
+  border-radius:10px; border-bottom-left-radius:3px;
+  align-self:flex-start; animation:msgIn 0.25s ease;
+}
+.typing span { width:5px; height:5px; border-radius:50%; background:var(--blue); animation:dotBounce 1.2s infinite; }
+.typing span:nth-child(2){animation-delay:0.18s}
+.typing span:nth-child(3){animation-delay:0.36s}
+@keyframes dotBounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+
+.chat-input-row {
+  display:flex; gap:7px; padding:10px;
+  border-top:1px solid var(--border); background:rgba(255,255,255,0.012);
+}
+.chat-input {
+  flex:1; background:rgba(255,255,255,0.04); border:1px solid var(--border);
+  border-radius:6px; padding:9px 12px; color:var(--silver);
+  font-family:'Barlow',sans-serif; font-size:0.82rem; outline:none;
+  transition:border-color 0.2s;
+}
+.chat-input:focus { border-color:rgba(255,30,30,0.4); }
+.chat-input::placeholder { color:var(--muted); }
+.chat-send {
+  background:linear-gradient(135deg,var(--red),var(--red2));
+  border:none; border-radius:6px; width:38px; color:#fff;
+  cursor:pointer; font-size:0.88rem; transition:opacity 0.2s; flex-shrink:0;
+}
+.chat-send:hover { opacity:0.85; }
+.chat-send:disabled { opacity:0.3; cursor:not-allowed; }
+
+.quick-row { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:14px; }
+.qchip {
+  background:rgba(255,255,255,0.03); border:1px solid var(--border);
+  border-radius:16px; padding:5px 11px;
+  font-family:'Barlow Condensed',sans-serif; font-size:0.65rem; font-weight:500;
+  letter-spacing:0.5px; color:var(--muted2); cursor:pointer; transition:all 0.2s;
+}
+.qchip:hover { border-color:rgba(255,30,30,0.4); color:var(--silver); background:var(--red-dim); }
+.qchip.beg { border-color:rgba(57,255,136,0.18); color:rgba(57,255,136,0.7); }
+.qchip.beg:hover { border-color:var(--green); color:var(--green); background:var(--green-dim); }
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 18px 24px;
+  position: relative; overflow: hidden;
+}
+footer::before {
+  content: ''; position: absolute; top: 0; left: 5%; right: 5%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--red) 40%, var(--blue) 60%, transparent);
+  box-shadow: 0 0 12px rgba(255,30,30,0.3);
+}
+.footer-inner { max-width: 480px; margin: 0 auto; text-align: center; }
+.footer-logo {
+  font-family: 'Orbitron', monospace; font-weight: 900;
+  font-size: 1rem; letter-spacing: 4px; margin-bottom: 4px;
+}
+.footer-logo em { color: var(--red); font-style: normal; }
+.footer-tag { font-family:'Barlow Condensed',sans-serif; font-size:0.58rem; letter-spacing:3px; color:var(--muted2); text-transform:uppercase; margin-bottom:18px; }
+
+.footer-pulse {
+  height: 1px; margin: 14px 0;
+  background: linear-gradient(90deg, transparent, rgba(255,30,30,0.25) 30%, var(--red) 50%, rgba(255,30,30,0.25) 70%, transparent);
+  position: relative; overflow: hidden;
+}
+.footer-pulse::after {
+  content: ''; position:absolute; top:-1px; width:50px; height:3px;
+  background: var(--red); border-radius:2px;
+  animation: pulseRun 2.5s infinite linear;
+  box-shadow: 0 0 10px var(--red), 0 0 20px rgba(255,30,30,0.4);
+}
+@keyframes pulseRun { from{left:-50px} to{left:100%} }
+
+.footer-links { display:flex; justify-content:center; gap:20px; margin-bottom:12px; }
+.footer-link { font-family:'Barlow Condensed',sans-serif; font-size:0.62rem; font-weight:500; letter-spacing:1.5px; color:var(--muted2); text-transform:uppercase; cursor:pointer; transition:color 0.2s; }
+.footer-link:hover { color:var(--silver); }
+.footer-copy { font-size:0.56rem; color:var(--muted); letter-spacing:1px; }
+.footer-ibm  { font-size:0.52rem; color:var(--muted); letter-spacing:1px; margin-top:4px; }
+.footer-ibm span { color:var(--blue); }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ NAV ══════════════ -->
+<nav>
+  <div class="nav-brand">
+    <img class="nav-logo-img"
+         src="/mnt/user-data/uploads/file_00000000628871fa9f2d33372c32b00b.png"
+         alt="RaceIQ"
+         onerror="this.style.display='none'"/>
+    <div>
+      <div class="nav-logo-text">RACE<em>IQ</em></div>
+      <span class="nav-tagline">Decode The Race</span>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="navTo('sec-live',this)">Live</button>
+    <button class="nav-tab" onclick="navTo('sec-feed',this)">Feed</button>
+    <button class="nav-tab" onclick="navTo('sec-predict',this)">Predict</button>
+    <button class="nav-tab" onclick="navTo('sec-ask',this)">Ask AI</button>
+  </div>
+
+  <div class="nav-right">
+    <div class="live-chip"><div class="live-chip-dot"></div>Live</div>
+    <button class="nav-icon">🔔</button>
+    <button class="nav-icon">👤</button>
+  </div>
+</nav>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-glow-r"></div>
+  <div class="hero-glow-b"></div>
+  <div class="tele">
+    <div class="tl"></div><div class="tl"></div>
+    <div class="tl"></div><div class="tl"></div><div class="tl"></div>
+  </div>
+
+  <!-- F1 car silhouette -->
+  <div class="car-wrap">
+    <svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" fill="white">
+      <!-- simplified F1 car top-view -->
+      <ellipse cx="300" cy="90" rx="240" ry="22"/>
+      <ellipse cx="300" cy="90" rx="160" ry="38"/>
+      <rect x="80" y="72" width="440" height="36" rx="18"/>
+      <ellipse cx="110" cy="90" rx="30" ry="50"/>
+      <ellipse cx="490" cy="90" rx="30" ry="50"/>
+      <ellipse cx="150" cy="58" rx="22" ry="12"/>
+      <ellipse cx="450" cy="58" rx="22" ry="12"/>
+      <ellipse cx="150" cy="122" rx="22" ry="12"/>
+      <ellipse cx="450" cy="122" rx="22" ry="12"/>
+      <rect x="260" y="55" width="80" height="70" rx="8" opacity="0.5"/>
+    </svg>
+  </div>
+
+  <div class="hero-inner">
+    <div class="hero-race-flag">
+      <div class="hero-flag-dot"></div>
+      <span class="hero-flag-text">🇨🇦 Canadian Grand Prix · Round 8</span>
+      <span class="hero-flag-lap">LAP 42 / 57</span>
+    </div>
+
+    <h1 class="hero-headline">
+      Decode The Race<br>
+      <span class="accent">In Real Time</span>
+    </h1>
+
+    <p class="hero-sub">AI-powered Formula 1 insights for every fan — from total beginners to expert analysts. Powered by IBM Granite.</p>
+
+    <div class="hero-ctas">
+      <button class="btn-primary" onclick="navTo('sec-live', null)">▶ Enter Live Race</button>
+      <button class="btn-ghost"   onclick="navTo('sec-predict', null)">View Predictions</button>
+    </div>
+
+    <div class="hero-stats">
+      <div class="h-stat">
+        <div class="h-stat-lbl">Leader</div>
+        <div class="h-stat-val r">ANT</div>
+      </div>
+      <div class="h-stat">
+        <div class="h-stat-lbl">Gap</div>
+        <div class="h-stat-val b">+3.2s</div>
+      </div>
+      <div class="h-stat">
+        <div class="h-stat-lbl">Weather</div>
+        <div class="h-stat-val g">DRY</div>
+      </div>
+      <div class="h-stat">
+        <div class="h-stat-lbl">Safety Car</div>
+        <div class="h-stat-val w">NONE</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ LIVE SECTION ═══════ -->
+<div class="sec-divider"></div>
+<section id="sec-live">
+  <div class="container">
+
+    <div class="sec-head">
+      <span class="sec-label">Live Race</span>
+      <div class="sec-line"></div>
+      <span class="sec-pill blue">AI Commentary</span>
+    </div>
+
+    <!-- Commentary -->
+    <div class="comm-card">
+      <div class="comm-head">
+        <div class="comm-id">
+          <div class="comm-orb" id="commOrb">🎙️</div>
+          <div>
+            <div class="comm-name">AI Race Commentator</div>
+            <div class="comm-sub">Live voice + captions · <span class="ibm-badge">IBM GRANITE</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="cap-zone" id="capZone">
+        <div class="cap-idle">Tap ▶ Play or select a race moment for live AI commentary…</div>
+      </div>
+
+      <div class="comm-controls">
+        <button class="btn-play" id="playBtn" onclick="playCommentary()">▶ Play</button>
+        <button class="btn-stop" id="stopBtn" onclick="stopCommentary()" disabled>⏹ Stop</button>
+        <span class="vol-note">🔊 Volume on</span>
+      </div>
+
+      <div class="moments">
+        <div class="moment-chip" onclick="commentOn('overtake')">🏎 Overtake</div>
+        <div class="moment-chip" onclick="commentOn('pitstop')">🔧 Pit Stop</div>
+        <div class="moment-chip" onclick="commentOn('safetycar')">🚗 Safety Car</div>
+        <div class="moment-chip" onclick="commentOn('fastest')">⚡ Fastest Lap</div>
+        <div class="moment-chip" onclick="commentOn('championship')">🏆 Title Fight</div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="sec-head" style="margin-top:20px;">
+      <span class="sec-label">Leaderboard</span>
+      <div class="sec-line"></div>
+    </div>
+
+    <div class="lb-row r1">
+      <div class="lb-pos gold">1</div>
+      <div class="lb-team-bar" style="background:#00D2BE"></div>
+      <div class="lb-info">
+        <div class="lb-name">K. Antonelli</div>
+        <div class="lb-meta">
+          <span class="lb-team-name">Mercedes</span>
+          <span class="tyre H">HARD</span>
+        </div>
+      </div>
+      <div class="lb-right">
+        <div class="lb-time">1:14.203</div>
+        <div class="lb-gap">Leader</div>
+        <div class="lb-delta up">▲ P1</div>
+      </div>
+    </div>
+
+    <div class="lb-row r2">
+      <div class="lb-pos silver">2</div>
+      <div class="lb-team-bar" style="background:#DC0000"></div>
+      <div class="lb-info">
+        <div class="lb-name">L. Hamilton</div>
+        <div class="lb-meta">
+          <span class="lb-team-name">Ferrari</span>
+          <span class="tyre H">HARD</span>
+          <span class="drs-badge">DRS</span>
+        </div>
+      </div>
+      <div class="lb-right">
+        <div class="lb-time">1:14.501</div>
+        <div class="lb-gap">+3.2s</div>
+        <div class="lb-delta up">▲ +1</div>
+      </div>
+    </div>
+
+    <div class="lb-row r3">
+      <div class="lb-pos bronze">3</div>
+      <div class="lb-team-bar" style="background:#3671C6"></div>
+      <div class="lb-info">
+        <div class="lb-name">M. Verstappen</div>
+        <div class="lb-meta">
+          <span class="lb-team-name">Red Bull</span>
+          <span class="tyre M">MED</span>
+        </div>
+      </div>
+      <div class="lb-right">
+        <div class="lb-time">1:14.689</div>
+        <div class="lb-gap">+7.8s</div>
+        <div class="lb-delta down">▼ 0</div>
+      </div>
+    </div>
+
+    <div class="lb-row">
+      <div class="lb-pos">4</div>
+      <div class="lb-team-bar" style="background:#FF8000"></div>
+      <div class="lb-info">
+        <div class="lb-name">L. Norris</div>
+        <div class="lb-meta">
+          <span class="lb-team-name">McLaren</span>
+          <span class="tyre S">SOFT</span>
+          <span class="drs-badge">DRS</span>
+        </div>
+      </div>
+      <div class="lb-right">
+        <div class="lb-time">1:14.902</div>
+        <div class="lb-gap">+12.1s</div>
+        <div class="lb-delta up">▲ +0.4</div>
+      </div>
+    </div>
+
+    <div class="lb-row">
+      <div class="lb-pos">5</div>
+      <div class="lb-team-bar" style="background:#DC0000"></div>
+      <div class="lb-info">
+        <div class="lb-name">C. Leclerc</div>
+        <div class="lb-meta">
+          <span class="lb-team-name">Ferrari</span>
+          <span class="tyre H">HARD</span>
+        </div>
+      </div>
+      <div class="lb-right">
+        <div class="lb-time">1:15.103</div>
+        <div class="lb-gap">+15.4s</div>
+        <div class="lb-delta down">▼ -0.1</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════ STRATEGY FEED ═══════ -->
+<div class="sec-divider"></div>
+<section id="sec-feed">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-label">AI Strategy Feed</span>
+      <div class="sec-line"></div>
+      <span class="sec-pill blue">IBM Granite</span>
+    </div>
+
+    <div class="feed-card">
+      <div class="feed-lap">LAP 42 · NOW</div>
+      <div class="feed-text">Ferrari may attempt an <strong>undercut on Verstappen</strong> within the next 2 laps — their medium tyres are degrading 0.4s/lap faster than Red Bull.</div>
+      <div class="feed-badge strategy">⚡ Strategy Alert</div>
+    </div>
+
+    <div class="feed-card">
+      <div class="feed-lap">LAP 40 · 3 LAPS AGO</div>
+      <div class="feed-text">Antonelli's pace advantage over Hamilton is <strong>+0.3s per lap</strong>. At current rate, the gap extends to 7.8s by lap 50 unless Mercedes adjust strategy.</div>
+      <div class="feed-badge tyre">🔄 Tyre Delta</div>
+    </div>
+
+    <div class="feed-card">
+      <div class="feed-lap">LAP 38 · 5 LAPS AGO</div>
+      <div class="feed-text"><strong>Norris on fresh softs</strong> after a McLaren gamble on late stop. Gaining 0.5s/lap on Leclerc — overtake for P4 looks highly probable within 4 laps.</div>
+      <div class="feed-badge alert">🚨 Overtake Alert</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PREDICTIONS ═══════ -->
+<div class="sec-divider"></div>
+<section id="sec-predict">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-label">Prediction Engine</span>
+      <div class="sec-line"></div>
+      <span class="sec-pill red">IBM Granite</span>
+    </div>
+
+    <div class="pred-grid">
+      <div class="pred-card">
+        <div class="pred-lbl">Race Winner</div>
+        <div class="ring-wrap">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle class="ring-bg" cx="32" cy="32" r="26"/>
+            <circle class="ring-fg" cx="32" cy="32" r="26"
+              stroke="#FF1E1E"
+              stroke-dasharray="163.4"
+              stroke-dashoffset="35.9"/>
+          </svg>
+          <div class="ring-pct" style="color:var(--red)">78%</div>
+        </div>
+        <div class="pred-val">ANT</div>
+        <div class="conf-row"><span class="conf-lbl">Confidence</span><div class="conf-bar"><div class="conf-fill" style="width:78%"></div></div></div>
+      </div>
+
+      <div class="pred-card">
+        <div class="pred-lbl">Safety Car</div>
+        <div class="ring-wrap">
+          <svg width="64" height="64" viewBox="0 0 64 64">
+            <circle class="ring-bg" cx="32" cy="32" r="26"/>
+            <circle class="ring-fg" cx="32" cy="32" r="26"
+              stroke="#00C2FF"
+              stroke-dasharray="163.4"
+              stroke-dashoffset="124.2"/>
+          </svg>
+          <div class="ring-pct" style="color:var(--blue)">24%</div>
+        </div>
+        <div class="pred-val" style="color:var(--blue)">24%</div>
+        <div class="conf-row"><span class="conf-lbl">Risk</span><div class="conf-bar"><div class="conf-fill" style="width:24%"></div></div></div>
+      </div>
+
+      <div class="pred-card">
+        <div class="pred-lbl">Next Pit Stop</div>
+        <div style="padding:8px 0;">
+          <div style="font-family:'Orbitron',monospace;font-size:0.75rem;color:var(--gold);margin-bottom:3px;">LAP 47</div>
+          <div style="font-size:0.78rem;color:var(--silver2);">Norris · McLaren</div>
+        </div>
+        <div class="conf-row"><span class="conf-lbl">65%</span><div class="conf-bar"><div class="conf-fill" style="width:65%"></div></div></div>
+      </div>
+
+      <div class="pred-card">
+        <div class="pred-lbl">Title Impact</div>
+        <div style="padding:8px 0;">
+          <div style="font-family:'Orbitron',monospace;font-size:0.88rem;color:var(--green);margin-bottom:3px;">+25 PTS</div>
+          <div style="font-size:0.7rem;color:var(--muted2);">ANT gap: 43 → 68</div>
+        </div>
+        <div class="conf-row"><span class="conf-lbl">ANT</span><div class="conf-bar"><div class="conf-fill" style="width:90%"></div></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ ASK AI ═══════ -->
+<div class="sec-divider"></div>
+<section id="sec-ask">
+  <div class="container">
+    <div class="sec-head">
+      <span class="sec-label">Ask RaceIQ</span>
+      <div class="sec-line"></div>
+      <span class="sec-pill blue">Beginner Friendly</span>
+    </div>
+
+    <div class="chat-card">
+      <div class="chat-head">
+        <span style="font-size:1rem;">🤖</span>
+        <span class="chat-head-title">RaceIQ Assistant</span>
+        <span class="ibm-badge">IBM GRANITE</span>
+        <div class="mode-wrap">
+          <span class="mode-txt" id="modeLbl">Expert</span>
+          <label class="tog">
+            <input type="checkbox" id="beginnerToggle" onchange="toggleMode()"/>
+            <span class="tog-slider"></span>
+          </label>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:0.6rem;color:var(--muted2);letter-spacing:1px;">BEGINNER</span>
+        </div>
+      </div>
+
+      <div class="messages" id="messages">
+        <div class="msg ai">
+          <div class="msg-lbl">RaceIQ · IBM Granite</div>
+          Hey! 👋 I'm your AI race analyst. Ask me anything — strategy, rules, driver battles, or what's happening right now.<br><br>
+          New to F1? Switch on <strong style="color:var(--green)">Beginner Mode</strong> — I'll explain everything with simple everyday analogies. 🟢
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input class="chat-input" id="chatInput" placeholder="Ask anything about the race…"/>
+        <button class="chat-send" id="sendBtn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+
+    <div class="quick-row">
+      <div class="qchip" onclick="quickAsk('What is happening in the race right now?')">🏁 What's happening?</div>
+      <div class="qchip" onclick="quickAsk('Who is winning and why?')">🏆 Who's winning?</div>
+      <div class="qchip" onclick="quickAsk('Will Antonelli win?')">🔮 Will ANT win?</div>
+      <div class="qchip beg" onclick="quickAsk('What is an undercut in simple terms?')">❓ What is undercut?</div>
+      <div class="qchip beg" onclick="quickAsk('What is DRS? Explain simply.')">❓ What is DRS?</div>
+      <div class="qchip beg" onclick="quickAsk('Why do F1 cars make pit stops?')">❓ Why pit stops?</div>
+      <div class="qchip beg" onclick="quickAsk('Why are soft tyres faster in F1?')">❓ Soft vs hard tyres?</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ FOOTER ═══════ -->
+<div class="sec-divider"></div>
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">RACE<em>IQ</em></div>
+    <div class="footer-tag">Where Racing Meets Intelligence</div>
+    <div class="footer-links">
+      <span class="footer-link">About</span>
+      <span class="footer-link">Privacy</span>
+      <span class="footer-link">Contact</span>
+      <span class="footer-link">GitHub</span>
+    </div>
+    <div class="footer-pulse"></div>
+    <div class="footer-copy">© 2026 RaceIQ · IBM SkillsBuild Innovation Challenge</div>
+    <div class="footer-ibm">Powered by <span>IBM Granite</span> · watsonx AI Platform</div>
+  </div>
+</footer>
+
+</main>
+
+<!-- ══════════════ JAVASCRIPT ══════════════ -->
+<script>
+/* ── NAV ── */
+function navTo(id, tabEl) {
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth', block:'start'});
+  if (tabEl) {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    tabEl.classList.add('active');
+  }
+}
+
+/* ── VOICE COMMENTARY ── */
+let isSpeaking = false;
+
+const RACE = `2026 Canadian Grand Prix, Lap 42 of 57. 1st Kimi Antonelli (Mercedes) leading, 2nd Lewis Hamilton (Ferrari) +3.2s, 3rd Max Verstappen (Red Bull) +7.8s, 4th Lando Norris (McLaren) +12.1s, 5th Charles Leclerc (Ferrari) +15.4s. 15 laps remaining.`;
+
+const MOMENT_PROMPTS = {
+  overtake:     "Describe an exciting overtake just happened between two F1 drivers. Dramatic, like David Croft on Sky Sports F1. Max 40 words.",
+  pitstop:      "Describe a pit stop that just happened including tyre strategy. Expert F1 commentator tone. Max 40 words.",
+  safetycar:    "Safety Car deployed! Describe the chaos and strategic implications. Build tension. Max 40 words.",
+  fastest:      "A driver just set the fastest lap! Excited F1 commentator style. Max 40 words.",
+  championship: "Comment on the championship battle implications of this race moment. Expert analyst tone. Max 40 words."
+};
+
+const GEN_PROMPTS = [
+  "Give electrifying live commentary on Antonelli leading Hamilton with 15 laps left. Sky F1 David Croft style. Max 40 words.",
+  "Comment on the tyre strategy battle between the top drivers right now. Build tension. Max 40 words.",
+  "Describe the intense battle brewing between the top 3 right now. Suspenseful commentator style. Max 40 words.",
+];
+
+async function callGranite(prompt, systemPrompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  const d = await res.json();
+  return d.content?.[0]?.text || '';
+}
+
+function showLoading() {
+  document.getElementById('capZone').innerHTML =
+    `<div class="cap-loading">
+       <div class="bars"><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div></div>
+       <span>Generating commentary…</span>
+     </div>`;
+}
+
+function speakWithCaptions(text) {
+  if (!text) return;
+  if (typeof speechSynthesis === 'undefined') {
+    document.getElementById('capZone').innerHTML =
+      '<div class="cap-label">🎙 Commentary</div><div class="cap-text">' + text + '</div>';
+    document.getElementById('commOrb').classList.remove('live');
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('playBtn').disabled = false;
+    isSpeaking = false;
+    return;
+  }
+  speechSynthesis.cancel();
+
+  const words = text.split(' ');
+  document.getElementById('capZone').innerHTML =
+    `<div class="cap-label">🎙 Now Speaking</div>
+     <div class="cap-text" id="capText">${words.map((w,i)=>`<span class="cw" id="cw${i}">${w} </span>`).join('')}</div>`;
+
+  document.getElementById('commOrb').classList.add('live');
+  document.getElementById('stopBtn').disabled = false;
+  document.getElementById('playBtn').disabled = true;
+  isSpeaking = true;
+
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = 'en-GB'; utt.rate = 1.05; utt.pitch = 1.0;
+  const voices = speechSynthesis.getVoices();
+  const pick = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Daniel') || v.name.includes('Google UK') || v.name.includes('British')))
+            || voices.find(v => v.lang.startsWith('en'));
+  if (pick) utt.voice = pick;
+
+  const msPerWord = Math.max(180, (text.length / 13) * 1000 / words.length);
+  let wi = 0;
+  const timer = setInterval(() => {
+    const prev = document.getElementById(`cw${wi-1}`);
+    if (prev) { prev.classList.remove('now'); prev.classList.add('done'); }
+    const curr = document.getElementById(`cw${wi}`);
+    if (curr) curr.classList.add('now');
+    wi++;
+    if (wi >= words.length) clearInterval(timer);
+  }, msPerWord);
+
+  utt.onend = () => {
+    clearInterval(timer);
+    document.getElementById('commOrb').classList.remove('live');
+    document.getElementById('stopBtn').disabled = true;
+    document.getElementById('playBtn').disabled = false;
+    isSpeaking = false;
+    document.getElementById('capZone').innerHTML = '<div class="cap-idle">Tap ▶ Play or select a race moment for more commentary…</div>';
+  };
+
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.speak(utt);
+}
+
+function stopCommentary() {
+  if (typeof speechSynthesis !== 'undefined') speechSynthesis.cancel();
+  isSpeaking = false;
+  document.getElementById('commOrb').classList.remove('live');
+  document.getElementById('stopBtn').disabled = true;
+  document.getElementById('playBtn').disabled = false;
+  document.getElementById('capZone').innerHTML = '<div class="cap-idle">Tap ▶ Play or select a race moment for more commentary…</div>';
+}
+
+async function playCommentary() {
+  if (isSpeaking) { stopCommentary(); return; }
+  document.getElementById('playBtn').disabled = true;
+  showLoading();
+  try {
+    const sys = `You are an electrifying F1 TV race commentator powered by IBM Granite. Energy like David Croft on Sky Sports F1. Race: ${RACE} Under 45 words. Pure commentary only — no labels or prefixes.`;
+    const text = await callGranite(GEN_PROMPTS[Math.floor(Math.random()*GEN_PROMPTS.length)], sys);
+    speakWithCaptions(text);
+  } catch(e) {
+    document.getElementById('capZone').innerHTML = '<div class="cap-idle" style="color:var(--red)">⚠️ Could not generate. Try again.</div>';
+    document.getElementById('playBtn').disabled = false;
+  }
+}
+
+async function commentOn(moment) {
+  stopCommentary(); showLoading();
+  document.getElementById('playBtn').disabled = true;
+  try {
+    const sys = `You are an electrifying F1 TV race commentator powered by IBM Granite. Race: ${RACE} Under 45 words. Pure commentary only.`;
+    const text = await callGranite(MOMENT_PROMPTS[moment], sys);
+    speakWithCaptions(text);
+  } catch(e) {
+    document.getElementById('capZone').innerHTML = '<div class="cap-idle" style="color:var(--red)">⚠️ Could not generate. Try again.</div>';
+    document.getElementById('playBtn').disabled = false;
+  }
+}
+
+if (typeof speechSynthesis !== 'undefined') {
+  speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+}
+
+/* ── CHAT ── */
+let isBeginnerMode = false;
+
+function toggleMode() {
+  isBeginnerMode = document.getElementById('beginnerToggle').checked;
+  const lbl = document.getElementById('modeLbl');
+  lbl.textContent = isBeginnerMode ? 'Beginner' : 'Expert';
+  lbl.className = 'mode-txt' + (isBeginnerMode ? ' on' : '');
+}
+
+function quickAsk(text) {
+  document.getElementById('chatInput').value = text;
+  sendMessage();
+  document.getElementById('sec-ask')?.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chatInput');
+  const box   = document.getElementById('messages');
+  const btn   = document.getElementById('sendBtn');
+  const text  = input.value.trim();
+  if (!text) return;
+
+  box.innerHTML += `<div class="msg user">${esc(text)}</div>`;
+  input.value = ''; btn.disabled = true;
+  box.scrollTop = box.scrollHeight;
+
+  const tid = 't' + Date.now();
+  box.innerHTML += `<div class="typing" id="${tid}"><span></span><span></span><span></span></div>`;
+  box.scrollTop = box.scrollHeight;
+
+  const sys = isBeginnerMode
+    ? `You are RaceIQ, an F1 companion powered by IBM Granite. The user is a COMPLETE BEGINNER who knows nothing about Formula 1. Always use simple everyday analogies — never use jargon without explaining it. Examples: "DRS is like a turbo boost button", "an undercut is like cutting the queue at a shop to get ahead". Race context: ${RACE} Be warm, friendly, encouraging. Max 3 short sentences. End with a fun emoji.`
+    : `You are RaceIQ, an F1 race intelligence companion powered by IBM Granite on watsonx. Help fans understand F1 in real time. Race context: ${RACE} Be concise, expert, enthusiastic. Max 3 sentences.`;
+
+  try {
+    const reply = await callGranite(text, sys);
+    document.getElementById(tid)?.remove();
+    const tag = isBeginnerMode ? '<div class="beg-tag">🟢 BEGINNER MODE</div>' : '';
+    box.innerHTML += `<div class="msg ai"><div class="msg-lbl">RaceIQ · IBM Granite</div>${tag}${esc(reply)}</div>`;
+  } catch(e) {
+    document.getElementById(tid)?.remove();
+    box.innerHTML += `<div class="msg ai"><div class="msg-lbl">RaceIQ · IBM Granite</div>⚠️ Connection issue. Please try again.</div>`;
+  }
+
+  btn.disabled = false;
+  box.scrollTop = box.scrollHeight;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+document.getElementById('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendMessage();
+});
+</script>
+</body>
+  </html>
